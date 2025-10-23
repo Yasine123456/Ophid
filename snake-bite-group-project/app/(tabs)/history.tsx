@@ -1,0 +1,547 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  StatusBar,
+  RefreshControl,
+  Alert,
+  Image,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import SideMenu from '../../components/SideMenu';
+import { useRouter } from 'expo-router';
+
+// Define Report interface here if not importing from service
+interface Report {
+  id: string;
+  date: string;
+  time: string;
+  snakeType: string;
+  scientific: string;
+  location: string;
+  status: string;
+  severity: 'Low' | 'Moderate' | 'High';
+  confidence: number;
+  venomous: boolean;
+  snakePhotoUri?: string;
+  bitePhotoUri?: string;
+  description?: string;
+  dangerLevel: string;
+  snakeImageUrl?: string;
+  snakeId?: number;
+  timestamp: number;
+  lat?: number;
+  lon?: number;
+}
+
+// Import or create storage service
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+
+const REPORTS_KEY = '@ophid_reports';
+
+class ReportStorageService {
+  async getAllReports(): Promise<Report[]> {
+    try {
+      const reportsJson = await AsyncStorage.getItem(REPORTS_KEY);
+      if (reportsJson) {
+        return JSON.parse(reportsJson);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting reports:', error);
+      return [];
+    }
+  }
+
+  async deleteReport(id: string): Promise<void> {
+    try {
+      const reports = await this.getAllReports();
+      const report = reports.find(r => r.id === id);
+      
+      // Delete associated photos
+      if (report?.snakePhotoUri) {
+        await this.deletePhoto(report.snakePhotoUri);
+      }
+      if (report?.bitePhotoUri) {
+        await this.deletePhoto(report.bitePhotoUri);
+      }
+      
+      // Remove report from array
+      const updatedReports = reports.filter(r => r.id !== id);
+      await AsyncStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      throw error;
+    }
+  }
+
+  async deletePhoto(photoUri: string): Promise<void> {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(photoUri);
+      if (fileInfo.exists) {
+        await FileSystem.deleteAsync(photoUri);
+      }
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+    }
+  }
+}
+
+const reportStorage = new ReportStorageService();
+
+export default function HistoryScreen() {
+  const { darkMode, colors } = useTheme();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  const loadReports = async () => {
+    try {
+      setLoading(true);
+      const savedReports = await reportStorage.getAllReports();
+      setReports(savedReports);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+      Alert.alert('Error', 'Failed to load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadReports();
+    setRefreshing(false);
+  };
+
+  const handleDeleteReport = (reportId: string) => {
+    Alert.alert(
+      'Delete Report',
+      'Are you sure you want to delete this report? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await reportStorage.deleteReport(reportId);
+              await loadReports();
+              Alert.alert('Success', 'Report deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete report');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleViewReport = (reportId: string) => {
+    router.push({
+      pathname: '/report-detail',
+      params: { reportId },
+    });
+  };
+
+  const handleMenuNavigation = (screen: string) => {
+    setMenuOpen(false);
+    if (screen === 'settings') {
+      setTimeout(() => router.push('/settings'), 300);
+    } else if (screen === 'snakeguide') {
+      setTimeout(() => router.push('/snake-guide'), 300);
+    } else if (screen === 'hospital') {
+      setTimeout(() => router.push('/nearest-hospital'), 300);
+    } else if (screen === 'firstaid') {
+      setTimeout(() => router.push('/first-aid'), 300);
+    } else if (screen === 'emergency') {
+      setTimeout(() => router.push('/emergency-contacts'), 300);
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'High': return '#dc2626';
+      case 'Moderate': return '#f59e0b';
+      case 'Low': return '#2563eb';
+      default: return '#64748b';
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'High': return 'warning';
+      case 'Moderate': return 'alert-circle';
+      case 'Low': return 'checkmark-circle';
+      default: return 'information-circle';
+    }
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
+      
+      <SideMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={handleMenuNavigation}
+        darkMode={darkMode}
+      />
+
+      <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => setMenuOpen(true)}>
+          <Ionicons name="menu" size={28} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.logo}>
+            <Text style={styles.logoText}>O</Text>
+          </View>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Reports</Text>
+        </View>
+        <TouchableOpacity onPress={loadReports}>
+          <Ionicons name="refresh" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.headerSection}>
+          <Text style={[styles.pageTitle, { color: colors.textPrimary }]}>
+            Submitted Reports
+          </Text>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>
+            View your previous snake encounter reports
+          </Text>
+        </View>
+
+        {loading ? (
+          <View style={[styles.emptyState, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Ionicons name="hourglass-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+              Loading Reports...
+            </Text>
+          </View>
+        ) : reports.length === 0 ? (
+          <View style={[styles.emptyState, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Ionicons name="document-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+              No Reports Yet
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              Your submitted snake encounter reports will appear here
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyActionButton, { backgroundColor: '#2563eb' }]}
+              onPress={() => router.push('/submit-analysis')}
+            >
+              <Ionicons name="add-circle" size={20} color="#ffffff" />
+              <Text style={styles.emptyActionText}>Submit First Report</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.reportsList}>
+            {reports.map((report) => (
+              <View
+                key={report.id}
+                style={styles.reportContainer}
+              >
+                {/* Main card - clickable */}
+                <TouchableOpacity
+                  style={[styles.reportCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
+                  onPress={() => handleViewReport(report.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.reportHeader}>
+                    <View style={styles.reportHeaderLeft}>
+                      <View style={[
+                        styles.severityBadge,
+                        { backgroundColor: getSeverityColor(report.severity) }
+                      ]}>
+                        <Ionicons 
+                          name={getSeverityIcon(report.severity) as any}
+                          size={16}
+                          color="#ffffff"
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.snakeName, { color: colors.textPrimary }]}>
+                          {report.snakeType}
+                        </Text>
+                        <Text style={[styles.reportDate, { color: colors.textSecondary }]}>
+                          {report.date} at {report.time}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  </View>
+
+                  {/* Show thumbnail if available */}
+                  {(report.snakePhotoUri || report.snakeImageUrl) && (
+                    <View style={styles.thumbnailContainer}>
+                      <Image 
+                        source={{ uri: report.snakePhotoUri || report.snakeImageUrl }} 
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
+
+                  <View style={styles.reportDetails}>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="location-outline" size={16} color="#2563eb" />
+                      <Text style={[styles.detailText, { color: colors.textSecondary }]} numberOfLines={1}>
+                        {report.location}
+                      </Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Ionicons name="medical-outline" size={16} color="#2563eb" />
+                      <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                        Status: {report.status}
+                      </Text>
+                    </View>
+
+                    {report.confidence && (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="analytics-outline" size={16} color="#2563eb" />
+                        <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                          {report.confidence}% confidence
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Show if user submitted photos/description */}
+                    <View style={styles.submittedDataRow}>
+                      {report.snakePhotoUri && (
+                        <View style={[styles.submittedBadge, { backgroundColor: darkMode ? '#1e3a8a' : '#dbeafe' }]}>
+                          <Ionicons name="image" size={12} color="#2563eb" />
+                          <Text style={[styles.submittedBadgeText, { color: '#2563eb' }]}>Snake Photo</Text>
+                        </View>
+                      )}
+                      {report.bitePhotoUri && (
+                        <View style={[styles.submittedBadge, { backgroundColor: darkMode ? '#7f1d1d' : '#fee2e2' }]}>
+                          <Ionicons name="bandage" size={12} color="#dc2626" />
+                          <Text style={[styles.submittedBadgeText, { color: '#dc2626' }]}>Bite Photo</Text>
+                        </View>
+                      )}
+                      {report.description && (
+                        <View style={[styles.submittedBadge, { backgroundColor: darkMode ? '#14532d' : '#dcfce7' }]}>
+                          <Ionicons name="document-text" size={12} color="#16a34a" />
+                          <Text style={[styles.submittedBadgeText, { color: '#16a34a' }]}>Description</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Delete button - OUTSIDE the touchable card */}
+                <TouchableOpacity
+                  style={[styles.deleteButton, { backgroundColor: darkMode ? '#1e293b' : '#ffffff' }]}
+                  onPress={() => handleDeleteReport(report.id)}
+                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 2,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  content: {
+    flex: 1,
+  },
+  headerSection: {
+    padding: 24,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  pageSubtitle: {
+    fontSize: 16,
+  },
+  emptyState: {
+    margin: 16,
+    padding: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyActionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  reportsList: {
+    padding: 16,
+  },
+  reportContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  reportCard: {
+    borderRadius: 16,
+    padding: 16,
+    paddingRight: 56, // Make room for delete button
+    borderWidth: 1,
+  },
+  reportCardTouchable: {
+    flex: 1,
+  },
+  thumbnailContainer: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  thumbnail: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  reportHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  severityBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  snakeName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  reportDate: {
+    fontSize: 13,
+  },
+  reportDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  submittedDataRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  submittedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  submittedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  deleteButtonContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 999,
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+});
