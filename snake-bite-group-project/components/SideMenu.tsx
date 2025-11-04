@@ -1,14 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
+  Animated,
+  Image,
   Modal,
   ScrollView,
-  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+
+// Use existing app icon for both themes to avoid missing asset errors
+// Theme-aware logos: using existing assets as placeholders.
+// Replace these imports with your own files when available:
+//   '../assets/images/logo-light.png' and '../assets/images/logo-dark.png'
+// Using existing images to avoid missing-asset crash. Replace with your files when added.
+import lightLogo from '../assets/images/logo-dark.png';
+import darkLogo from '../assets/images/logo-light.png';
 
 interface SideMenuProps {
   visible: boolean;
@@ -83,12 +92,14 @@ export default function SideMenu({ visible, onClose, onNavigate, darkMode = fals
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Menu Header */}
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <View style={styles.menuHeaderLeft}>
-                <View style={styles.menuLogo}>
-                  <Text style={styles.menuLogoText}>O</Text>
-                </View>
-                <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>Ophid</Text>
-              </View>
+              <Image
+                // Show light logo in dark mode, dark logo in light mode
+                source={darkMode ? lightLogo : darkLogo}
+                style={styles.menuLogoImage}
+                accessibilityRole="image"
+                accessibilityLabel="Ophid"
+              />
+
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Ionicons name="close" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -161,6 +172,12 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomWidth: 2,
   },
+  menuLogoImage: {
+    width: 160, // adjust to taste
+    height: 32, // adjust 28–36 for balance
+    resizeMode: 'contain',
+    alignSelf: 'flex-start',
+  }, 
   menuHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
