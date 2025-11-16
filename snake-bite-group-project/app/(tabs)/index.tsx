@@ -5,14 +5,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import SideMenu from '../../components/SideMenu';
 import SnakeDetailModal from '../../components/SnakeDetailModal';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../_context/ThemeContext';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function HomeScreen() {
   const handleMenuNavigation = (screen: string) => {
     setMenuOpen(false);
     if (screen === 'settings') {
-      setTimeout(() => router.push('/settings'), 300);
+      setTimeout(() => router.push('/(tabs)/settings'), 300);
     } else if (screen === 'snakeguide') {
       setTimeout(() => router.push('/snake-guide'), 300);
     } else if (screen === 'hospital') {
@@ -74,9 +74,6 @@ export default function HomeScreen() {
           <Ionicons name="menu" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>O</Text>
-          </View>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Ophid</Text>
         </View>
       </View>
@@ -156,32 +153,16 @@ const styles = StyleSheet.create({
   menuButton: {
     position: 'absolute',
     left: 24,
-    top: 16,
+    top: 0,
+    bottom: 0,
     zIndex: 10,
+    justifyContent: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
   },
   headerTitle: {
     fontSize: 24,

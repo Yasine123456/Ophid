@@ -5,14 +5,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
   Alert,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../_context/ThemeContext';
 import SideMenu from '../../components/SideMenu';
 import { useRouter } from 'expo-router';
 
@@ -102,6 +102,14 @@ export default function HistoryScreen() {
   const [reports, setReports] = useState<Report[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Placeholder handlers for upcoming filters/sort UI
+  const handleOpenFilters = () => {
+    Alert.alert('Filters', 'Filters coming soon');
+  };
+  const handleOpenSort = () => {
+    Alert.alert('Sort', 'Sort options coming soon');
+  };
 
   useEffect(() => {
     loadReports();
@@ -159,7 +167,7 @@ export default function HistoryScreen() {
   const handleMenuNavigation = (screen: string) => {
     setMenuOpen(false);
     if (screen === 'settings') {
-      setTimeout(() => router.push('/settings'), 300);
+      setTimeout(() => router.push('/(tabs)/settings'), 300);
     } else if (screen === 'snakeguide') {
       setTimeout(() => router.push('/snake-guide'), 300);
     } else if (screen === 'hospital') {
@@ -201,16 +209,13 @@ export default function HistoryScreen() {
       />
 
       <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => setMenuOpen(true)}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => setMenuOpen(true)}>
           <Ionicons name="menu" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>O</Text>
-          </View>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Reports</Text>
         </View>
-        <TouchableOpacity onPress={loadReports}>
+        <TouchableOpacity style={styles.rightButton} onPress={loadReports}>
           <Ionicons name="refresh" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -222,13 +227,32 @@ export default function HistoryScreen() {
         }
       >
         <View style={styles.headerSection}>
-          <Text style={[styles.pageTitle, { color: colors.textPrimary }]}>
+          <Text style={[styles.pageTitle, { color: colors.textPrimary }]}> 
             Submitted Reports
           </Text>
-          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}> 
             View your previous snake encounter reports
           </Text>
         </View>
+        {/* Controls row (only when reports exist) */}
+        {!loading && reports.length > 0 && (
+          <View style={styles.controlsRow}>
+            <TouchableOpacity
+              style={[styles.controlButton, { borderColor: '#2563eb', backgroundColor: colors.cardBg }]}
+              onPress={handleOpenFilters}
+            >
+              <Ionicons name="filter" size={16} color="#2563eb" />
+              <Text style={[styles.controlButtonText, { color: colors.textPrimary }]}>Filters</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.controlButton, { borderColor: '#2563eb', backgroundColor: colors.cardBg }]}
+              onPress={handleOpenSort}
+            >
+              <Ionicons name="swap-vertical" size={16} color="#2563eb" />
+              <Text style={[styles.controlButtonText, { color: colors.textPrimary }]}>Sort</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading ? (
           <View style={[styles.emptyState, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
@@ -288,7 +312,7 @@ export default function HistoryScreen() {
                         </Text>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    {/* Arrow relocated to bottom-right of card */}
                   </View>
 
                   {/* Show thumbnail if available */}
@@ -350,14 +374,21 @@ export default function HistoryScreen() {
                   </View>
                 </TouchableOpacity>
 
-                {/* Delete button - OUTSIDE the touchable card */}
-                <TouchableOpacity
-                  style={[styles.deleteButton, { backgroundColor: darkMode ? '#1e293b' : '#ffffff' }]}
-                  onPress={() => handleDeleteReport(report.id)}
-                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                >
-                  <Ionicons name="trash-outline" size={18} color="#dc2626" />
-                </TouchableOpacity>
+                {/* Bottom-right arrow indicator */}
+                <View style={styles.arrowIconContainer}>
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                </View>
+
+                {/* Delete button - top right */}
+                <View style={styles.deleteButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: darkMode ? '#1e293b' : '#ffffff' }]}
+                    onPress={() => handleDeleteReport(report.id)}
+                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -372,39 +403,68 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderBottomWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  logo: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    gap: 12,
+    width: '100%',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+  },
+  menuButton: {
+    position: 'absolute',
+    left: 24,
+    top: 0,
+    bottom: 0,
+    zIndex: 10,
+    justifyContent: 'center',
+  },
+  rightButton: {
+    position: 'absolute',
+    right: 24,
+    top: 0,
+    bottom: 0,
+    zIndex: 10,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
   },
   headerSection: {
     padding: 24,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  controlButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+  },
+  controlButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   pageTitle: {
     fontSize: 28,
@@ -543,5 +603,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 5,
+  },
+  arrowIconContainer: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
   },
 });

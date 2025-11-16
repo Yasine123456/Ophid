@@ -5,15 +5,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import SideMenu from '../components/SideMenu';
 import NearbyMedicalServices from '../components/NearbyMedicalServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './_context/ThemeContext';
 import locationCache from '../utils/locationCache';
 
 export default function NearestHospitalScreen() {
@@ -37,7 +37,7 @@ export default function NearestHospitalScreen() {
     } else if (screen === 'history') {
       setTimeout(() => router.push('/(tabs)/history'), 300);
     } else if (screen === 'settings') {
-      setTimeout(() => router.push('/settings'), 300);
+      setTimeout(() => router.push('/(tabs)/settings'), 300);
     }
   };
 

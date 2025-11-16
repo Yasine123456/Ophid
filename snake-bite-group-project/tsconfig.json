@@ -14,5 +14,10 @@
     "**/*.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "components/_archive/**",
+    "hooks/_archive/**",
+    "constants/_archive/**"
   ]
 }

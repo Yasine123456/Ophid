@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Animated,
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -16,8 +15,7 @@ import {
 // Replace these imports with your own files when available:
 //   '../assets/images/logo-light.png' and '../assets/images/logo-dark.png'
 // Using existing images to avoid missing-asset crash. Replace with your files when added.
-import lightLogo from '../assets/images/logo-dark.png';
-import darkLogo from '../assets/images/logo-light.png';
+// Logo image replaced with text title
 
 interface SideMenuProps {
   visible: boolean;
@@ -69,6 +67,8 @@ export default function SideMenu({ visible, onClose, onNavigate, darkMode = fals
       visible={visible}
       animationType="none"
       transparent={true}
+      statusBarTranslucent={true}
+      presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
       <View style={styles.menuOverlay}>
@@ -92,13 +92,7 @@ export default function SideMenu({ visible, onClose, onNavigate, darkMode = fals
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Menu Header */}
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Image
-                // Show light logo in dark mode, dark logo in light mode
-                source={darkMode ? lightLogo : darkLogo}
-                style={styles.menuLogoImage}
-                accessibilityRole="image"
-                accessibilityLabel="Ophid"
-              />
+              <Text style={[styles.menuTitle, { color: colors.textPrimary, fontSize: 24 }]}>Ophid</Text>
 
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Ionicons name="close" size={28} color={colors.textSecondary} />
@@ -107,26 +101,32 @@ export default function SideMenu({ visible, onClose, onNavigate, darkMode = fals
 
             {/* Menu Items */}
             <View style={styles.menuItems}>
-              {menuItems.map((item) => (
+              {menuItems.map((item) => {
+                const isEmergencyDark = darkMode && item.isEmergency;
+                return (
                 <TouchableOpacity
                   key={item.id}
                   style={[
                     styles.menuItem,
-                    item.isEmergency && styles.menuItemEmergency,
+                    item.isEmergency && (isEmergencyDark
+                      ? { backgroundColor: '#b91c1c', borderWidth: 2, borderColor: colors.cardBg }
+                      : styles.menuItemEmergency),
                   ]}
                   onPress={() => onNavigate(item.id)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name={item.icon as any} size={24} color={item.color} />
+                  <Ionicons name={item.icon as any} size={24} color={isEmergencyDark ? colors.textPrimary : item.color} />
                   <Text style={[
                     styles.menuItemText,
-                    item.isEmergency ? styles.menuItemEmergencyText : { color: colors.textPrimary }
+                    item.isEmergency
+                      ? (isEmergencyDark ? { color: colors.textPrimary, fontWeight: 'bold' } : styles.menuItemEmergencyText)
+                      : { color: colors.textPrimary }
                   ]}>
                     {item.label}
                   </Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={18} color={isEmergencyDark ? colors.textPrimary : colors.textSecondary} />
                 </TouchableOpacity>
-              ))}
+              );})}
             </View>
 
             {/* Menu Footer */}

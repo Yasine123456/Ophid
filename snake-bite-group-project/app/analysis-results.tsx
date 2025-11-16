@@ -5,14 +5,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Image,
   Alert,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './_context/ThemeContext';
 import SnakeDetailModal from '../components/SnakeDetailModal';
 import * as Location from 'expo-location';
 import reportStorage from '../services/reportStorage';
@@ -22,6 +22,7 @@ export default function AnalysisResultsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { darkMode, colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [snakeModalVisible, setSnakeModalVisible] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationName, setLocationName] = useState<string>('Location unavailable');
@@ -152,7 +153,7 @@ export default function AnalysisResultsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* Success Banner */}
         <View style={styles.successBanner}>
           <View style={styles.successIconCircle}>

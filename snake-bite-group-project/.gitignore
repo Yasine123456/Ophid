@@ -4,3 +4,8 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local Expo + editor caches (not for source control)
+.expo/
+.expo/*
+.expo-shared/

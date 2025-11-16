@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './_context/ThemeContext';
 import SideMenu from '../components/SideMenu';
 import SnakeDetailModal from '../components/SnakeDetailModal';
 

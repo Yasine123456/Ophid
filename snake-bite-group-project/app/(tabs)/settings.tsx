@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Switch,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../_context/ThemeContext';
 import SideMenu from '../../components/SideMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -64,11 +64,12 @@ export default function SettingsScreen() {
       />
       
       <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => setMenuOpen(true)}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => setMenuOpen(true)}>
           <Ionicons name="menu" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
-        <View style={{ width: 28 }} />
+        <View style={styles.headerContent}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -80,7 +81,7 @@ export default function SettingsScreen() {
               <Ionicons name="moon-outline" size={24} color="#2563eb" />
               <View style={styles.settingTextContainer}>
                 <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Dark Mode</Text>
-                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}> 
                   {darkMode ? 'Enabled' : 'Disabled'}
                 </Text>
               </View>
@@ -221,11 +222,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderBottomWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  menuButton: {
+    position: 'absolute',
+    left: 24,
+    top: 0,
+    bottom: 0,
+    zIndex: 10,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,

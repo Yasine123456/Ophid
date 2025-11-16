@@ -5,21 +5,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   TextInput,
   Image,
   Alert,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './_context/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SubmitAnalysisScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { darkMode, colors } = useTheme();
+  const insets = useSafeAreaInsets();
   
   const [snakePhoto, setSnakePhoto] = useState<string | null>(null);
   const [bitePhoto, setBitePhoto] = useState<string | null>(null);
@@ -118,7 +119,7 @@ export default function SubmitAnalysisScreen() {
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* Progress Indicator */}
         <View style={[styles.progressCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={styles.progressRow}>

@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from './_context/ThemeContext';
 import SideMenu from '../components/SideMenu';
 import SnakeDetailModal from '../components/SnakeDetailModal';
 import { SNAKES_DATABASE } from '../types/snake';
@@ -39,7 +39,7 @@ export default function SnakeGuideScreen() {
   } else if (screen === 'history') {
     setTimeout(() => router.push('/(tabs)/history'), 300);
   } else if (screen === 'settings') {
-    setTimeout(() => router.push('/settings'), 300);
+    setTimeout(() => router.push('/(tabs)/settings'), 300);
   }
 };
 
@@ -148,7 +148,14 @@ export default function SnakeGuideScreen() {
                 onPress={() => handleSnakeTap(snake!.id)}
               >
                 <View style={[styles.gridDangerStripe, { backgroundColor: snake!.venomous ? '#dc2626' : '#f59e0b' }]} />
-                <Image source={{ uri: snake!.imageUrl }} style={styles.gridImage} />
+                <Image
+                  source={snake!.imageUrl}
+                  style={styles.gridImage}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="disk"
+                  onError={() => console.warn('Failed to load snake image (grid):', snake!.name)}
+                />
                 <View style={styles.gridInfo}>
                   <Ionicons 
                     name={snake!.venomous ? "warning" : "alert-circle"} 
@@ -195,7 +202,14 @@ export default function SnakeGuideScreen() {
               onPress={() => handleSnakeTap(snake.id)}
             >
               <View style={[styles.listDangerStripe, { backgroundColor: '#dc2626' }]} />
-              <Image source={{ uri: snake.imageUrl }} style={styles.listImage} />
+              <Image
+                source={snake.imageUrl}
+                style={styles.listImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="disk"
+                onError={() => console.warn('Failed to load snake image (venomous list):', snake.name)}
+              />
               <View style={styles.listContent}>
                 <View style={styles.listHeader}>
                   <Ionicons name="warning" size={20} color="#dc2626" />
@@ -227,7 +241,14 @@ export default function SnakeGuideScreen() {
               onPress={() => handleSnakeTap(snake.id)}
             >
               <View style={[styles.listDangerStripe, { backgroundColor: '#f59e0b' }]} />
-              <Image source={{ uri: snake.imageUrl }} style={styles.listImage} />
+              <Image
+                source={snake.imageUrl}
+                style={styles.listImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="disk"
+                onError={() => console.warn('Failed to load snake image (non-venomous list):', snake.name)}
+              />
               <View style={styles.listContent}>
                 <View style={styles.listHeader}>
                   <Ionicons name="alert-circle" size={20} color="#f59e0b" />
