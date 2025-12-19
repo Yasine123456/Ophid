@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { SNAKES_DATABASE } from '@/types/snake';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  StatusBar,
   Animated,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from './_context/ThemeContext';
 
 export default function AnalysisLoadingScreen() {
@@ -75,6 +76,17 @@ export default function AnalysisLoadingScreen() {
         setProgress(((index + 1) / steps.length) * 100);
       }, totalTime);
     });
+    
+    // Simulate model result
+    const modelResult = "Glossy Snake";
+    const modelConfidence = 75;
+
+    const matchedSnake = SNAKES_DATABASE.find((s) =>
+      s.name.toLowerCase() === modelResult.toLowerCase()
+    );
+
+    console.log("Model output:", modelResult);
+    console.log("Matched snake:", matchedSnake);
 
     // Navigate to results after all steps - PASS THE DATA!
     setTimeout(() => {
@@ -83,15 +95,24 @@ export default function AnalysisLoadingScreen() {
       console.log('Passing Bite Photo:', params.bitePhotoUri);
       console.log('Passing Description:', params.description);
       
-      router.replace({
-        pathname: '/analysis-results',
-        params: {
-          // CRITICAL: Pass through the user data
-          snakePhotoUri: String(params.snakePhotoUri || ''),
-          bitePhotoUri: String(params.bitePhotoUri || ''),
-          description: String(params.description || ''),
-        }
-      });
+    router.replace({
+      pathname: '/analysis-results',
+      params: {
+        // User input
+        snakePhotoUri: String(params.snakePhotoUri || ''),
+        bitePhotoUri: String(params.bitePhotoUri || ''),
+        description: String(params.description || ''),
+
+        // Model output we simulated
+        modelResult: modelResult,
+        modelConfidence: String(modelConfidence),
+
+        // If the database matched a snake
+        matchedSnakeId: matchedSnake ? String(matchedSnake.id) : '',
+        matchedSnakeName: matchedSnake ? matchedSnake.name : 'Unknown',
+        matchedSnakeDanger: matchedSnake ? matchedSnake.danger : 'Unknown',
+      }
+    });
     }, totalTime + 500);
 
   }, []);

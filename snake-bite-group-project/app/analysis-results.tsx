@@ -17,6 +17,7 @@ import SnakeDetailModal from '../components/SnakeDetailModal';
 import * as Location from 'expo-location';
 import reportStorage from '../services/reportStorage';
 import locationCache from '../utils/locationCache';
+import { SNAKES_DATABASE } from '@/types/snake';
 
 export default function AnalysisResultsScreen() {
   const router = useRouter();
@@ -27,32 +28,86 @@ export default function AnalysisResultsScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationName, setLocationName] = useState<string>('Location unavailable');
   const [reportSaved, setReportSaved] = useState(false);
+  
+  // Extract model + match information from navigation params
+  const modelResult = typeof params.modelResult === 'string' ? params.modelResult : '';
+  const modelConfidenceParam =
+    typeof params.modelConfidence === 'string'
+      ? parseInt(params.modelConfidence, 10)
+      : NaN;
 
-  // Mock result - in real app, this would come from AI analysis
+  const matchedSnakeIdParam =
+    typeof params.matchedSnakeId === 'string' && params.matchedSnakeId.trim() !== ''
+      ? parseInt(params.matchedSnakeId, 10)
+      : undefined;
+
+  const matchedSnakeNameParam =
+    typeof params.matchedSnakeName === 'string' ? params.matchedSnakeName : '';
+
+  // Try to find the snake in the database by ID first, then by name
+  const matchedSnakeById = matchedSnakeIdParam
+    ? SNAKES_DATABASE.find((s) => s.id === matchedSnakeIdParam)
+    : undefined;
+
+  const matchedSnakeByName =
+    !matchedSnakeById && matchedSnakeNameParam
+      ? SNAKES_DATABASE.find(
+          (s) => s.name.toLowerCase() === matchedSnakeNameParam.toLowerCase()
+        )
+      : undefined;
+
+  const matchedSnake = matchedSnakeById || matchedSnakeByName;
+
+  // Derive a simplified danger level from the database danger string
+  let dangerLevel: string = 'UNKNOWN';
+  if (matchedSnake?.danger) {
+    const prefix = matchedSnake.danger.split('-')[0].trim().toUpperCase();
+    if (['LOW', 'MODERATE', 'HIGH'].includes(prefix)) {
+      dangerLevel = prefix;
+    }
+  }
+  
+  // Fallbacks if no match
+  const fallbackName =
+    matchedSnakeNameParam || modelResult || 'Unknown snake';
+  const fallbackScientific =
+    matchedSnake?.scientific || modelResult || 'Unknown species';
+
+  const confidence = !isNaN(modelConfidenceParam)
+    ? modelConfidenceParam
+    : 75;
+
+  // If we have a matched snake, use its venom status; otherwise assume venomous for safety
+  const venomous = matchedSnake ? matchedSnake.venomous : true;
+  
+
+  const FALLBACK_IMAGE =
+    "https://upload.wikimedia.org/wikipedia/commons/9/96/Agkistrodon_contortrix_contortrix_CDC-a.png";
+
+  // Build the "result" object used by the UI
   const result = {
-    snakeId: 1, // Copperhead ID from database
-    snakeName: 'Copperhead',
-    scientific: 'Agkistrodon contortrix',
-    confidence: 92,
-    venomous: true,
-    dangerLevel: 'MODERATE',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Agkistrodon_contortrix_contortrix_CDC-a.png',
+    snakeId: matchedSnake?.id,
+    snakeName: matchedSnake?.name || fallbackName,
+    scientific: matchedSnake?.scientific || fallbackScientific,
+    confidence: confidence,
+    venomous: matchedSnake?.venomous ?? venomous,
+    dangerLevel: matchedSnake?.danger || dangerLevel,
+    imageUrl: matchedSnake?.imageUrl || FALLBACK_IMAGE,
   };
 
   useEffect(() => {
     getLocationInfo();
     
-    // DEBUG: Log what params we received
+    // DEBUG: Log what params and match we have
     console.log('=== ANALYSIS RESULTS PARAMS ===');
     console.log('All params:', params);
-    console.log('Snake Photo URI:', params.snakePhotoUri);
-    console.log('Bite Photo URI:', params.bitePhotoUri);
-    console.log('Description:', params.description);
-    console.log('Types:', {
-      snakePhoto: typeof params.snakePhotoUri,
-      bitePhoto: typeof params.bitePhotoUri,
-      description: typeof params.description,
-    });
+    console.log('Model result:', modelResult);
+    console.log('Model confidence (raw):', params.modelConfidence);
+    console.log('Parsed confidence:', confidence);
+    console.log('Matched snake ID param:', matchedSnakeIdParam);
+    console.log('Matched snake name param:', matchedSnakeNameParam);
+    console.log('Matched snake object:', matchedSnake);
+    console.log('Computed result object:', result);
     console.log('==============================');
   }, []);
 
@@ -73,20 +128,37 @@ export default function AnalysisResultsScreen() {
       const now = new Date();
       
       // Extract and clean the params
-      const snakePhotoUri = typeof params.snakePhotoUri === 'string' && params.snakePhotoUri.trim() !== '' 
-        ? params.snakePhotoUri 
-        : undefined;
-      const bitePhotoUri = typeof params.bitePhotoUri === 'string' && params.bitePhotoUri.trim() !== '' 
-        ? params.bitePhotoUri 
-        : undefined;
-      const description = typeof params.description === 'string' && params.description.trim() !== '' 
-        ? params.description 
-        : undefined;
+      const snakePhotoUri =
+        typeof params.snakePhotoUri === 'string' && params.snakePhotoUri.trim() !== ''
+          ? params.snakePhotoUri
+          : undefined;
+
+      const bitePhotoUri =
+        typeof params.bitePhotoUri === 'string' && params.bitePhotoUri.trim() !== ''
+          ? params.bitePhotoUri
+          : undefined;
+
+      const description =
+        typeof params.description === 'string' && params.description.trim() !== ''
+          ? params.description
+          : undefined;
       
       console.log('=== SAVING REPORT ===');
       console.log('Snake Photo URI (cleaned):', snakePhotoUri);
       console.log('Bite Photo URI (cleaned):', bitePhotoUri);
       console.log('Description (cleaned):', description);
+
+      // Map danger level to severity for the report
+      let severity: 'Low' | 'Moderate' | 'High' = 'Low';
+      if (result.dangerLevel === 'HIGH') {
+        severity = 'High';
+      } else if (result.dangerLevel === 'MODERATE') {
+        severity = 'Moderate';
+      } else if (result.dangerLevel === 'LOW') {
+        severity = result.venomous ? 'Moderate' : 'Low';
+      } else {
+        severity = result.venomous ? 'High' : 'Low';
+      }
       
       const report = {
         id: reportId,
@@ -96,7 +168,7 @@ export default function AnalysisResultsScreen() {
         scientific: result.scientific,
         location: locationName,
         status: result.venomous ? 'Treated' : 'No Treatment Needed',
-        severity: (result.venomous ? 'High' : 'Low') as 'Low' | 'Moderate' | 'High',
+        severity: severity,
         confidence: result.confidence,
         venomous: result.venomous,
         dangerLevel: result.dangerLevel,
